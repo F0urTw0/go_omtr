@@ -1,4 +1,4 @@
-package omtr
+package omniture
 
 import (
 	"crypto/md5"
