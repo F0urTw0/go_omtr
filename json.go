@@ -48,9 +48,11 @@ type Description struct {
 	DateFrom         string     `json:"dateFrom,omitempty"`
 	DateTo           string     `json:"dateTo,omitempty"`
 	DateGranularity  string     `json:"dateGranularity,omitempty"`
+	Source           string     `json:"source,omitempty"`
 	Metrics          []*Metric  `json:"metrics,omitempty"`
 	Elements         []*Element `json:"elements,omitempty"`
 	Locale           Locale     `json:"locale,omitempty"`
+	SortMethod       string     `json:"sortMethod,omitempty"`
 	SortBy           string     `json:"sortBy,omitempty"`
 	Segments         []*Segment `json:"segments,omitempty"`
 	SegmentId        string     `json:"segment_id,omitempty"`

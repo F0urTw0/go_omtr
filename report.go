@@ -3,6 +3,7 @@ package omniture
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -16,7 +17,7 @@ func (omcl *OmnitureClient) QueueReport(query *ReportQuery) (int64, error) {
 	return omcl.QueueReportRaw(string(bytes))
 }
 
-func format_error_response(resp []byte) error {
+func formatErrorResponse(resp []byte) error {
 	var ge getError
 	err := json.Unmarshal(resp, &ge)
 	if err != nil {
@@ -27,15 +28,20 @@ func format_error_response(resp []byte) error {
 
 // takes a query string (json) and returns a reportId which can be used to fetch the report in the future
 func (omcl *OmnitureClient) QueueReportRaw(query string) (int64, error) {
-	fmt.Printf("DEBUG: query: %s\n", query)
-	status, b, err := omcl.om_request("Report.Queue", query)
+
+	// debug mode
+	if os.Getenv("debug") != "" {
+		fmt.Printf("query: %s\n", query)
+	}
+
+	status, b, err := omcl.request("Report.Queue", query)
 
 	if err != nil {
 		return -1, err
 	}
 
 	if status == 400 {
-		return -1, format_error_response(b)
+		return -1, formatErrorResponse(b)
 	}
 
 	response := queueReport_response{}
@@ -50,14 +56,14 @@ func (omcl *OmnitureClient) QueueReportRaw(query string) (int64, error) {
 
 // takes a reportId and returns a raw byteslice of json data, or error, including the Report Not Ready error.
 func (omcl *OmnitureClient) GetReportRaw(reportId int64) ([]byte, error) {
-	status, response, err := omcl.om_request("Report.Get", fmt.Sprintf("{ \"reportID\":%d }", reportId))
+	status, response, err := omcl.request("Report.Get", fmt.Sprintf("{ \"reportID\":%d }", reportId))
 	if err != nil {
 		return nil, err
 	}
 
 	// the api returns 400 if the report is not yet ready; in this case I'll parse the response as an error and return it
 	if status == 400 {
-		return nil, format_error_response(response)
+		return nil, formatErrorResponse(response)
 	}
 
 	return response, err
@@ -71,6 +77,11 @@ func (omcl *OmnitureClient) GetReport(reportId int64) (*ReportResponse, error) {
 
 	resp := &ReportResponse{}
 
+	// debug mode
+	if os.Getenv("debug") != "" {
+		fmt.Printf("data: %s\n", string(bytes))
+	}
+
 	err = json.Unmarshal(bytes, resp)
 
 	resp.TimeRetrieved = time.Now()
@@ -82,18 +93,18 @@ func (omcl *OmnitureClient) GetReport(reportId int64) (*ReportResponse, error) {
 	Takes a report definition and a callback which will be called once the report has successfully been retrieved.
 	Returns the reportId of the queued report or error
 */
-func (omcl *OmnitureClient) Report(query *ReportQuery, success_callback func(*ReportResponse, error)) (int64, error) {
+func (omcl *OmnitureClient) Report(query *ReportQuery, successCallback func(*ReportResponse, error)) (int64, error) {
 	rid, err := omcl.QueueReport(query)
 	if err != nil {
 		return -1, err
 	}
 
-	go omcl.wait_for_report_then_call(rid, success_callback)
+	go omcl.waitForReportThenCall(rid, successCallback)
 
 	return rid, nil
 }
 
-func (omcl *OmnitureClient) wait_for_report_then_call(rid int64, callback func(*ReportResponse, error)) {
+func (omcl *OmnitureClient) waitForReportThenCall(rid int64, callback func(*ReportResponse, error)) {
 	for {
 		response, err := omcl.GetReport(rid)
 

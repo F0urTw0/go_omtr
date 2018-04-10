@@ -52,7 +52,7 @@ func (q *ReportQuery) DateTo(d time.Time) *ReportQuery {
 }
 
 // returns status code, body as []byte, error
-func (omcl *OmnitureClient) om_request(method, data string) (int, []byte, error) {
+func (omcl *OmnitureClient) request(method, data string) (int, []byte, error) {
 	endpoint := "https://api.omniture.com/admin/1.4/rest/?method=%s"
 
 	client := &http.Client{}
