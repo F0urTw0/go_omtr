@@ -7,16 +7,6 @@ import (
 	"time"
 )
 
-// takes a query object and returns a reportId which can be used to fetch the report in the future
-func (omcl *OmnitureClient) QueueReport(query *ReportQuery) (int64, error) {
-	bytes, err := json.Marshal(query)
-	if err != nil {
-		return -1, err
-	}
-
-	return omcl.QueueReportRaw(string(bytes))
-}
-
 func formatErrorResponse(resp []byte) error {
 	var ge getError
 	err := json.Unmarshal(resp, &ge)
@@ -26,12 +16,12 @@ func formatErrorResponse(resp []byte) error {
 	return ge
 }
 
-// takes a query string (json) and returns a reportId which can be used to fetch the report in the future
-func (omcl *OmnitureClient) QueueReportRaw(query string) (int64, error) {
+//  Queue a report to run
+func (omcl *OmnitureClient) QueueReport(query *ReportQuery) (int64, error) {
 
 	// debug mode
 	if os.Getenv("debug") != "" {
-		fmt.Printf("query: %s\n", query)
+		fmt.Printf("query: %v\n", query)
 	}
 
 	status, b, err := omcl.request("Report.Queue", query)
@@ -44,10 +34,9 @@ func (omcl *OmnitureClient) QueueReportRaw(query string) (int64, error) {
 		return -1, formatErrorResponse(b)
 	}
 
-	response := queueReport_response{}
+	response := queueReportResponse{}
 
-	err = json.Unmarshal(b, &response)
-	if err != nil {
+	if err = json.Unmarshal(b, &response); err != nil {
 		return -1, err
 	}
 
@@ -56,7 +45,11 @@ func (omcl *OmnitureClient) QueueReportRaw(query string) (int64, error) {
 
 // takes a reportId and returns a raw byteslice of json data, or error, including the Report Not Ready error.
 func (omcl *OmnitureClient) GetReportRaw(reportId int64) ([]byte, error) {
-	status, response, err := omcl.request("Report.Get", fmt.Sprintf("{ \"reportID\":%d }", reportId))
+
+	status, response, err := omcl.request("Report.Get", map[string]interface{}{
+		"reportID": reportId,
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +60,34 @@ func (omcl *OmnitureClient) GetReportRaw(reportId int64) ([]byte, error) {
 	}
 
 	return response, err
+}
+
+//  Retrieves a list of possible valid elements for a report
+func (omcl *OmnitureClient) GetElements(params map[string]interface{}) (elements []ReportElement, err error) {
+
+	var (
+		status int
+		response []byte
+	)
+
+	//params := fmt.Sprintf("{ \"reportID\":%d }", reportId)
+
+	if status, response, err = omcl.request("Report.GetElements", params); err != nil {
+		return
+	}
+
+	// the api returns 400 if the report is not yet ready; in this case I'll parse the response as an error and return it
+	if status == 400 {
+		return nil, formatErrorResponse(response)
+	}
+
+	// parse return
+	if err = json.Unmarshal(response,&elements); err != nil {
+		return
+	}
+
+	return
+
 }
 
 func (omcl *OmnitureClient) GetReport(reportId int64) (*ReportResponse, error) {

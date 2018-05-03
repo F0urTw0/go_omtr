@@ -113,6 +113,12 @@ type ReportSuite struct {
 	Name string `json:"name"`
 }
 
+type ReportElement struct {
+	Id             string `json:"id"`
+	Name           string `json:"name"`
+	Classification string `json:"classification"`
+}
+
 type Data struct {
 	Name           string      `json:"name"`
 	Url            string      `json:"url"`
@@ -165,7 +171,7 @@ func (n *OmtrFloat) UnmarshalJSON(data []byte) error {
 	return err
 }
 
-type queueReport_response struct {
+type queueReportResponse struct {
 	ReportID OmtrInt `json:"reportID"`
 }
 

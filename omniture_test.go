@@ -28,7 +28,7 @@ func SampleQuery() *ReportQuery {
 }
 
 func TestJsonNumberAsInt(t *testing.T) {
-	var qr queueReport_response
+	var qr queueReportResponse
 	raw := `{"reportID": 42}`
 	err := json.Unmarshal([]byte(raw), &qr)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestJsonNumberAsInt(t *testing.T) {
 }
 
 func TestJsonNumberAsString(t *testing.T) {
-	var qr queueReport_response
+	var qr queueReportResponse
 	raw := `{"reportID": "42"}`
 	err := json.Unmarshal([]byte(raw), &qr)
 	if err != nil {

@@ -1,6 +1,7 @@
 package omniture
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -52,12 +53,19 @@ func (q *ReportQuery) DateTo(d time.Time) *ReportQuery {
 }
 
 // returns status code, body as []byte, error
-func (omcl *OmnitureClient) request(method, data string) (int, []byte, error) {
+func (omcl *OmnitureClient) request(method, params interface{}) (int, []byte, error) {
+
+	// stringify parameters
+	bytes, err := json.Marshal(params)
+	if err != nil {
+		return -1, nil, err
+	}
+
 	endpoint := "https://api.omniture.com/admin/1.4/rest/?method=%s"
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf(endpoint, method), strings.NewReader(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf(endpoint, method), strings.NewReader(string(bytes)))
 	if err != nil {
 		return -1, nil, err
 	}
@@ -75,4 +83,5 @@ func (omcl *OmnitureClient) request(method, data string) (int, []byte, error) {
 	}
 
 	return resp.StatusCode, body, nil
+
 }
